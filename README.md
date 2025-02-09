@@ -162,7 +162,6 @@ export const handleStripeWebhook = async (req, res) => {
 import express from "express";
 import { createCheckoutSession, handleStripeWebhook } from "../controllers/payment/payment.js";
 import { isUser } from "../middleware/auth.js";
-import bodyParser from "body-parser";
 
 const router = express.Router();
 
@@ -170,19 +169,24 @@ const router = express.Router();
 router.post("/create-checkout-session",  express.json({ type: "application/json" }),isUser, createCheckoutSession);
   
 // Use the raw body parser only for Stripe webhooks
-router.post('/webhook', bodyParser.raw({ type: 'application/json' }), handleStripeWebhook);
+router.post('/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 export default router;
 ```
 
 ```
-Put this toute above these middleware
-app.use("/payment", payment);
+// only use the raw bodyParser for webhooks
+app.use((req, res, next) => {
+    if (req.originalUrl === '/webhook') {
+        next();
+    } else { 
+        express.json({limit: '5mb'})(req, res, next);
+    }
+});
 
-//app.use(express.json());
 app.use(express.static("public"));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }))
+app.use(urlencoded({ extended: true }));
 
 ```
 **6. Frontend **
